@@ -14,12 +14,13 @@ USAGE="Usage: $0 [OPTIONS] COMMAND
 Print OS information based on the os-release system information. With no
 COMMAND the default command 'os' is used.
 
-The mapping for the operating system ID is as follows:
+The mapping for the operating system id [/ like] is as follows:
   Alpine Linux        alpine
   Arch Linux          arch
   Debian              debian
-  Puppy Linux         puppy_fossapup64
-  Rasbian             raspbian
+  Kali linux          kali / debian
+  Puppy Linux         puppy
+  Rasbian             raspbian / debian
 
 COMMAND:
   os            prints os-release ID
@@ -38,7 +39,7 @@ function lowercase() {
 }
 
 function strip() {
-  echo "$1" | awk -F "=" '{print $2}'
+  echo "$1" | awk -F "=" '{print $2}' | awk -F "[-_]" '{print $1}'
 }
 
 function verify_cmd() {
@@ -67,22 +68,7 @@ function os() {
 
 # --- like -------------------------------------------------------------
 # Reads all input from /etc/*release and returns the mapping of ID=*
-# Mapping as follows:
-#
-#   Alpine Linux  = alpine
-#   Arch Linux    = arch
-#   Debian        = debian
-#   Puppy Linux   = puppy_fossapup64
-#   Rasbian       = raspbian
-#   Ubuntu        = ubuntu
-#
 function like() {
-  # Alpine Linux  = alpine
-  # Arch Linux    = arch
-  # Debian        = debian
-  # Puppy Linux   = puppy_fossapup64
-  # Rasbian       = debian
-  # Ubuntu        = debian
   id=$(cat /etc/*release | grep "^ID_LIKE=")
 
   if [[ -z "$id" ]] ; then
