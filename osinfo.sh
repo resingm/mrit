@@ -2,15 +2,17 @@
 
 # ----------------------------------------------------------------------
 #
-# 
+# osinfo.sh
+#
+# Small toolkit that reads and outputs the /etc/*release information.
 #
 # by Max Resing <contact@maxresing.de>
 #
 # ----------------------------------------------------------------------
 
-USAGE="Usage: $0 COMMAND
+USAGE="Usage: $0 [OPTIONS] COMMAND
 Print OS information based on the os-release system information. With no
-COMMAND this output is printed.
+COMMAND the default command 'os' is used.
 
 The mapping for the operating system ID is as follows:
   Alpine Linux        alpine
@@ -19,10 +21,15 @@ The mapping for the operating system ID is as follows:
   Puppy Linux         puppy_fossapup64
   Rasbian             raspbian
 
-Commands:
-  id          prints os-release ID
-  like        prints os-release ID_LIKE with fallback to ID if missing
+COMMAND:
+  os            prints os-release ID
+  like          prints os-release ID_LIKE with fallback to ID if missing
+
+OPTIONS
+  -h  --help    Print this help
 "
+
+COMMAND_LIST="os like"
 
 # --- Utils ------------------------------------------------------------
 
@@ -34,14 +41,28 @@ function strip() {
   echo "$1" | awk -F "=" '{print $2}'
 }
 
-# --- id ---------------------------------------------------------------
+function verify_cmd() {
+  if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    echo "$USAGE"
+    return 1
+  fi
+
+  verified=$(echo "$COMMAND_LIST" | grep "$1")
+
+  if [[ -z $verified ]]; then
+    echo "Invalid command: Cannot find '$1'. Use one of: $COMMAND_LIST" >> /dev/stderr
+    return 1
+  fi
+}
+
+# --- os ---------------------------------------------------------------
 # Reads all input from /etc/*release and returns the mapping of ID=*
 # Mapping as follows:
 #
 #
-function id() {
-  _id=$(cat /etc/*release | grep "^ID=")
-  strip "$_id"
+function os() {
+  id=$(cat /etc/*release | grep "^ID=")
+  strip "$id"
 }
 
 # --- like -------------------------------------------------------------
@@ -65,7 +86,7 @@ function like() {
   id=$(cat /etc/*release | grep "^ID_LIKE=")
 
   if [[ -z "$id" ]] ; then
-    id;
+    os;
   else
     strip "$id"
   fi
@@ -74,8 +95,11 @@ function like() {
 # --- Script -----------------------------------------------------------
 
 if [[ $# == 0 ]] ; then
-  echo "$USAGE"
+  os
 else
-  $1
+  # Vefiry the input command; If valid, then just call the input.
+  if verify_cmd "$1"; then
+    $1
+  fi
 fi
 
