@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # ======================================================================
-# 
+#
 #   ipinfo.py
 #
 # Small lookup tool that simply reads from STDIN, parses the input line
@@ -29,19 +29,20 @@ BASE_URI = "ipinfo.io"
 def fetch(ip, token):
     req = f"https://{BASE_URI}/{ip}?token={token}"
     res = requests.get(req)
-    
+
     if not res.ok:
         return None
-    
+
     return res.json()
 
 
 def err(msg, do_flush=True):
     sys.stderr.write(msg)
     sys.stderr.write('\n')
-    
+
     if do_flush:
         sys.stderr.flush()
+
 
 def write(data, do_flush=True):
     sys.stdout.write(data)
@@ -78,7 +79,7 @@ def main():
     ipinfo_token = cfg.get('ipinfo', 'token')
 
     if not ipinfo_token:
-        err(f"Token not configured in {CFG}")
+        err(f"Token not configured in {cfg_file}")
         sys.exit(1)
 
     try:
@@ -87,9 +88,9 @@ def main():
             # Prepare the input data ...
             _in = _in.strip()
 
-            try: 
+            try:
                 ipaddress.ip_address(_in)
-            except Exception as e:
+            except Exception:
                 # Ignore IPs that cannot be parsed
                 continue
 
@@ -104,7 +105,6 @@ def main():
         pass
 
     sys.exit(0)
-
 
 if __name__ == "__main__":
     main()
