@@ -10,8 +10,6 @@
 # 
 # ======================================================================
 
-import json
-import os
 import subprocess
 import sys
 
@@ -20,7 +18,11 @@ BIN = "/usr/bin/dig"
 ENCODING = "utf-8"
 
 
-def query(domain_name: str, qtype: str, nameserver: str = None):
+def query(
+    domain_name: str,
+    qtype: str,
+    nameserver: str = None,
+):
     domain_name = domain_name.lower()
     qtype = qtype.upper()
 
@@ -38,7 +40,10 @@ def query(domain_name: str, qtype: str, nameserver: str = None):
     return subprocess.check_output(args).decode(ENCODING).strip()
 
 
-def resolve_domain_name(domain_name, nameserver: str = None):
+def resolve_domain_name(
+    domain_name,
+    nameserver: str = None,
+):
     results = []
 
     while cname := query(domain_name, "CNAME", nameserver=nameserver):
@@ -60,24 +65,31 @@ def resolve_domain_name(domain_name, nameserver: str = None):
 
 def main():
 
-    # TODO: Add arg parse for nameserver
     # TODO: Add feature to reverse lookup
 
+    # Parse arguments...
+    nameserver = None
+
+    for arg in sys.argv:
+        arg = arg.strip()
+        
+        # Check on dig @nameserver argument
+        if arg[0] == "@":
+            nameserver = arg[1:]
+
+
+    # Loop over STDIN and resolve domain names
     try:
         for line in sys.stdin:
             # Prepare the input data ...
             line = line.strip()
 
-            if not line:
-                # Skip empty lines
-                continue
-
-            if line[0] == '#':
-                # Skip in-line comments
+            if not line or line[0] == "#":
+                # Skip empty lines or in-line comments
                 continue
 
             # Lookup all CNAMES, IPv4 and IPv6
-            results = resolve_domain_name(line)
+            results = resolve_domain_name(line, nameserver=nameserver)
 
             for r in results:
                 sys.stdout.write(",".join(r))
