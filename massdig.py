@@ -37,7 +37,10 @@ def query(
     args.append(qtype)
     args.append("+short")
 
-    return subprocess.check_output(args).decode(ENCODING).strip()
+    try:
+        return subprocess.check_output(args).decode(ENCODING).strip()
+    except subprocess.CalledProcessError:
+        return None
 
 
 def resolve_domain_name(
