@@ -12,14 +12,30 @@
 # 
 # ======================================================================
 
-# import json
+
+import asyncio
+import json
 import sys
+import time
 import uuid
 
 from datetime import datetime
 
-import requests
-import ujson
+import aiohttp
+from aiolimiter import AsyncLimiter
+
+
+# 8 requests / second
+limiter = AsyncLimiter(1, 0.125)
+
+
+def err(msg, do_flush=True):
+    sys.stderr.write(msg)
+    sys.stderr.write('\n')
+
+    if do_flush:
+        sys.stderr.flush()
+
 
 class Response:
     # uniquely generated ID
@@ -32,114 +48,152 @@ class Response:
     url_req: str
     # URL of the response
     url_res: str
-    # Elapsed time in microseconds
-    elapsed: int
     # Status code of the response
     status_code: int
     # Dictionary of the header fields
     headers: dict
     # Cookies
     cookies: dict
-    # Links
-    links: dict
     # Raw body
     body: str
+    # body length:
+    length: int
+    # Python error message
+    err_msg: str
 
     def __init__(self):
         pass
 
     def to_json(self):
-        return ujson.dumps(
+        return json.dumps(
             self,
             # indent=0,
             # separators=(',', ':'),
-            default=lambda o: o.__dict__,
+            default=lambda o: dict([(k, str(v)) for k, v in o.__dict__.items()]),
             # sort_keys=False,
         )
 
 
 
-def query(url: str):
+async def query(url: str, semaphore: asyncio.Semaphore):
     """Query a given URL, merge the lookup history, by following redirects and
     return the results in chronological order.
     """
 
     results = []
+    responses = []
 
     # Unique identifier
-    id = str(uuid.uuid4())
+    r_id = str(uuid.uuid4())
     # POSIX timestamp
-    ts = int(datetime.now().timestamp())
-    res = requests.get(url)
+    r_ts = int(datetime.now().timestamp())
+    r_url_req = url
 
-    responses = [x for x in res.history]
-    responses.append(res)
+    async with aiohttp.ClientSession() as session:
+        # Wait for it's semaphore
+        await semaphore.acquire()
 
-
-    for seq, x in enumerate(responses):
         try:
-            content = x.text
+            err(f"Fetching {url} ...")
+            async with session.get(url, timeout=7) as res:
+                responses += res.history
+                responses.append(res)
+
+                for seq, x in enumerate(responses):
+                    try:
+                        err_msg = ""
+                        content = await x.text()
+                    except Exception as e:
+                        content = ""
+                        err_msg = str(e)
+
+                    r = Response()
+                    r.id = r_id
+                    r.seq = seq
+                    r.ts = r_ts
+                    r.url_req = r_url_req
+                    r.url_res = str(x.url)
+                    r.status_code = x.status
+                    r.headers = dict(x.raw_headers)
+                    r.cookies = dict(x.cookies)
+                    r.body = content
+                    r.length = x.content_length
+                    r.err_msg = err_msg
+
+                    results.append(r)
+
         except Exception as e:
-            text = str(e)
-
-        r = Response()
-        r.id = id
-        r.seq = seq
-        r.ts = ts
-        r.url_req = url
-        r.url_res = x.url
-        r.elapsed = x.elapsed.microseconds
-        r.status_code = x.status_code
-        r.headers = x.headers
-        r.cookies = x.cookies._cookies
-        r.links = x.links
-        r.body = x.text
-
-        results.append(r)
+            r = Response()
+            r.id = r_id
+            r.seq = 0
+            r.ts = r_ts
+            r.url_req = r_url_req
+            r.url_res = ""
+            r.status_code = -1
+            r.headers = None
+            r.cookies = None
+            r.body = ""
+            r.length = -1
+            r.err_msg = str(e)
+            results.append(r)
+        finally:
+            semaphore.release()
 
     return results
 
 
-def http(url):
-    """Lookup as HTTP"""
-    return query("http://" + url)
+async def main():
+
+    # Prepare list of URLs to fetch
+    urls = []
+
+    demo = [
+        "google.com",
+        "maxresing.de",
+        "utwente.nl",
+        "beune.dev",
+    ]
+
+    # for line in sys.stdin:
+    for line in demo:
+        line = line.strip()
+
+        if not line or line[0] == '#':
+            # Skip empty lines or in-line comments
+            continue
+
+        if line.startswith('http://'):
+            urls.append(line)
+        elif line.startswith('https://'):
+            urls.append(line)
+        else:
+            urls.append('http://' + line)
+            urls.append('https://' + line)
 
 
-def https(url):
-    """Lookup as HTTPS"""
-    return query("https://" + url)
+    semaphore = asyncio.Semaphore(value=16)
+    tasks = []
+    #await query(urls, semaphore)
 
+    # async with aiohttp.ClientSession() as session:
+    #    await semaphore.acquire()
 
-def main():
-    # Parse arguments...
-    # for arg in sys.argv:
-    #    arg = arg.strip()
-        
-    # Loop over STDIN and query HTTP requests
-    try:
-        for line in sys.stdin:
-            # Prepare the input data ...
-            line = line.strip()
+    for url in urls:
+        tasks.append(query(url, semaphore))
+    
+    # await asyncio.wait(tasks)
+    results = await asyncio.gather(*tasks)
 
-            if not line or line[0] == "#":
-                # Skip empty lines or in-line comments
-                continue
+    for responses in results:
+        for response in responses:
+            sys.stdout.write(response.to_json())
+            sys.stdout.write("\n")
 
-            # Lookup all CNAMES, IPv4 and IPv6
-            # results = resolve_domain_name(line, nameserver=nameserver)
-            results = []
-
-            results += http(line)
-            results += https(line)
-
-            for r in results:
-                sys.stdout.write(r.to_json())
-                sys.stdout.write("\n")
-            
-            sys.stdout.flush()
-    except KeyboardInterrupt:
-        pass
+        sys.stdout.flush()
 
 
 if __name__ == "__main__":
-    main()
+    s = time.perf_counter()
+    asyncio.run(main())
+    elapsed = time.perf_counter() - s
+    err(f"Execution time: {elapsed:0.2f} seconds")
