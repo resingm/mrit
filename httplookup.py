@@ -6,10 +6,11 @@
 #
 # Lookup web server responses in bulk and log the results. Pipe a list
 # of domains you want to check to this tool, receive a list of HTTP(s)
-# responses to STDOUT.
+# responses to STDOUT. The progress is printed to STDERR
 #
-# The tool tests both on HTTP and HTTPS.
-# 
+# The tool tests both on HTTP and HTTPS, unless the protocol is defined
+# in the list of URLs.
+#
 # ======================================================================
 
 
@@ -94,6 +95,7 @@ async def query(url: str, semaphore: asyncio.Semaphore):
         await semaphore.acquire()
 
         try:
+            # TODO: only print if verbose output is requested
             err(f"Fetching {url} ...")
             async with session.get(url, timeout=7) as res:
                 responses += res.history
@@ -143,6 +145,9 @@ async def query(url: str, semaphore: asyncio.Semaphore):
 
 
 async def main():
+    # TODO: Chunk the set of URLs and lookup and fetch the results while
+    #       looking up the remaining stuff. So far, the lookup first has
+    #       to finish everything before the results are written.
 
     # Prepare list of URLs to fetch
     urls = []
@@ -163,7 +168,8 @@ async def main():
             urls.append('https://' + line)
 
 
-    semaphore = asyncio.Semaphore(value=16)
+    # TODO: make number of simultaneous lookups specifyable
+    semaphore = asyncio.Semaphore(value=32)
     tasks = []
     #await query(urls, semaphore)
 
