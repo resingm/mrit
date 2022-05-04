@@ -147,15 +147,7 @@ async def main():
     # Prepare list of URLs to fetch
     urls = []
 
-    demo = [
-        "google.com",
-        "maxresing.de",
-        "utwente.nl",
-        "beune.dev",
-    ]
-
-    # for line in sys.stdin:
-    for line in demo:
+    for line in sys.stdin:
         line = line.strip()
 
         if not line or line[0] == '#':
