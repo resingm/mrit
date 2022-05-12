@@ -66,7 +66,7 @@ def _parse_traceroute(input):
     dest_ip = ""
 
     # Hops is a list of tuples. Each tuple should have the shape:
-    # dest_host, dest_ip, hop_index, probe_index, probe_name, probe_ip, probe_rtt
+    # dest_host, dest_ip, hop_index, probe_index, probe_name, probe_ip, probe_rtt, annotation
     hops = []
 
     for line in input.split('\n'):
@@ -125,19 +125,25 @@ def traceroute(target, *args):
     _write_results(tr)
     return True
 
-        
 
 def main():
     # Parse arguments...
     args = []
+    header = True
     verbose = False
 
     for arg in sys.argv[1:]:
         if arg == "--verbose":
             verbose = True
+        elif arg == "--no-header":
+            header = False
         else:
             args.append(arg)
 
+
+    if header:
+        # Write header to output
+        _write_results(["target", "target_ip", "hop", "probe", "host", "host_ip", "rtt", "annotation"])
 
     # Loop over STDIN and resolve the routes line by line
     try:
