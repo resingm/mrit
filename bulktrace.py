@@ -32,9 +32,10 @@ def stderr(msg):
 
 
 def stdout(results):
-    sys.stdout.write(",".join(map(str, results)))
-    sys.stdout.write("\n")
-    sys.stdout.flush()
+    for r in results:
+        sys.stdout.write(",".join(map(str, r)))
+        sys.stdout.write("\n")
+        sys.stdout.flush()
 
 
 def _parse_probes(tokens):
@@ -216,7 +217,7 @@ async def main():
 
     if header:
         # Write header to output
-        stdout(["target", "target_ip", "hop", "probe", "host", "host_ip", "rtt", "annotation"])
+        stdout([("target", "target_ip", "hop", "probe", "host", "host_ip", "rtt", "annotation")])
 
     # Loop over STDIN and resolve the routes line by line
     try:
