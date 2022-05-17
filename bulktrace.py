@@ -61,7 +61,11 @@ def _parse_probes(tokens):
 
         if t2 == 'ms':
             # Same probe signature with another RTT
-            rtt = float(t1)
+            # Thus, fill the tokens to be parsed properly at the end of
+            # the while loop
+            t3 = t1
+            t2 = ip
+            t1 = name
         else:
             # New probe signature
             t3 = tokens.pop(0)
@@ -219,9 +223,12 @@ async def main():
         # Write header to output
         stdout([("target", "target_ip", "hop", "probe", "host", "host_ip", "rtt", "annotation")])
 
+    demo = ["176.9.40.199"]
+
     # Loop over STDIN and resolve the routes line by line
     try:
-        for line in sys.stdin:
+        #for line in sys.stdin:
+        for line in demo:
             while semaphore.locked():
                 await asyncio.sleep(1)
             # Remove complete tasks to let GC cleanup memory if all
