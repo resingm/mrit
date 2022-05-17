@@ -10,8 +10,8 @@
 #
 # ----------------------------------------------------------------------
 
-SEMAPHORE=unique-id
-VERSION=0.1.0
+SEMAPHORE=lock-csv-col
+VERSION=0.2.0
 
 function usage() {
     cat << EOF
@@ -40,11 +40,11 @@ EOF
 
 
 # --- Option processing --------------------------------------------
-col=0
+col=1
 delimiter=","
 input_file="/dev/stdin"
 skip_lines=2
-skip_null=1
+include_null=0
 
 
 # Parsing arguments
@@ -71,7 +71,7 @@ while [ ! -z "$1" ] ; do
       ;;
     --include-null|-n)
       # Include 'null' in output
-      skip_null=0
+      include_null=1
       ;;
     --help|-h)
       # Print help and exit
@@ -103,15 +103,16 @@ touch $LOCK
 
 # --- Script -------------------------------------------------------
 
-#while read -r row ; do
-#    echo "I am here."
-#done < "$(tail -n +$skip_lines $input_file)"
 
-#args="+${skip_lines} ${input_file}"
-#echo $args
 
 for line in $(tail -n +${skip_lines} ${input_file}) ; do
-    # echo "$(awk -F ${delimiter})"
-    arr=($(echo $line | tr ${delimiter} "\n"))
-    echo "${arr[$col]}"
+    elem=$(echo $line | cut -d"${delimiter}" -f${col})
+
+    if [[ $include_null -eq 0 && -n $elem && $elem != "null" ]] ; then
+        # Not include null values and $elem is not null or empty
+        echo "$elem"
+    elif [[ $include_null -eq 1 && -n $elem ]] ; then
+        # Include null values and $elem is not empty
+        echo "$elem"
+    fi
 done
