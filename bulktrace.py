@@ -223,12 +223,9 @@ async def main():
         # Write header to output
         stdout([("target", "target_ip", "hop", "probe", "host", "host_ip", "rtt", "annotation")])
 
-    demo = ["176.9.40.199"]
-
     # Loop over STDIN and resolve the routes line by line
     try:
-        #for line in sys.stdin:
-        for line in demo:
+        for line in sys.stdin:
             while semaphore.locked():
                 await asyncio.sleep(1)
             # Remove complete tasks to let GC cleanup memory if all
