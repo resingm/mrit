@@ -54,12 +54,16 @@ def resolve_domain_name(
         domain_name = cname
 
     if ipv4 := query(domain_name, "A", nameserver=nameserver):
-        results.append((domain_name, "A", ipv4))
+        ipv4 = ipv4.splitlines()
+        for ip in ipv4:
+            results.append((domain_name, "A", ip))
     else:
         results.append((domain_name, "A", "null"))
 
     if ipv6 := query(domain_name, "AAAA", nameserver=nameserver):
-        results.append((domain_name, "AAAA", ipv6))
+        ipv6 = ipv6.splitlines()
+        for ip in ipv6:
+            results.append((domain_name, "AAAA", ip))
     else:
         results.append((domain_name, "AAAA", "null"))
 
@@ -83,7 +87,8 @@ def main():
 
     # Loop over STDIN and resolve domain names
     try:
-        for line in sys.stdin:
+        #for line in sys.stdin:
+        for line in ["es.wpc.rt.com"]:
             # Prepare the input data ...
             line = line.strip(' \t.\r\n')
 
