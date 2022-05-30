@@ -85,7 +85,7 @@ def main():
     try:
         for line in sys.stdin:
             # Prepare the input data ...
-            line = line.strip(' \t.')
+            line = line.strip(' \t.\r\n')
 
             if not line or line[0] == "#":
                 # Skip empty lines or in-line comments
