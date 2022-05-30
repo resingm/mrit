@@ -87,8 +87,7 @@ def main():
 
     # Loop over STDIN and resolve domain names
     try:
-        #for line in sys.stdin:
-        for line in ["es.wpc.rt.com"]:
+        for line in sys.stdin:
             # Prepare the input data ...
             line = line.strip(' \t.\r\n')
 
