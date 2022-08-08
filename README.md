@@ -18,6 +18,29 @@ to `dig` with the `@` operator, e.g. `@9.9.9.9`.
 The tool ignores empty lines or lines that that start with '#', to allow
 in-line comments.
 
+## icanhaz.py
+
+This tool provides BGP information about a given IP. By default, the
+script first looks up the public IP address of the local host. The
+public IP is determined by calling {ipv4,ipv6}.icanhazip.com - which
+dubbed this tool as well.
+
+`-v --ip-version`
+
+  Use this option to determine the IP version - by default IPv4. Must be
+  in {4, 6}. Has only an effect when the IP is queried from
+  `icanhazip.com`.
+
+`-i --ip`
+
+  Set an IP, if you not requesting the IP of the localhost. By default
+  `127.0.0.1`.
+
+`cmd`
+  Define the BGP parameter your are looking for. Must be in {asn, cidr,
+  ip, ptr}
+
+
 
 ## osinfo.sh
 
