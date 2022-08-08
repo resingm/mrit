@@ -13,7 +13,8 @@
 import sys
 import argparse
 import requests
-import pyasn
+from ipaddress import ip_address
+from pprint import pprint as pp
 
 USAGE=f"""
 {sys.argv[0]} [CMD] [IP]
@@ -30,7 +31,7 @@ def main():
         "cmd",
         type=str.lower,
         default="ip",
-        choices=["asn", "cidr", "ip"],
+        choices=["asn", "cidr", "ip", "ptr"],
         help="Command to specify the feature to return.",
     )
     parser.add_argument(
@@ -57,13 +58,43 @@ def main():
         public_ip = res.text.strip()
         args.ip = public_ip
 
-    # TODO: lookup ASN with pyasn: https://pypi.org/project/pyasn/
+    # Validate IP input
+    try:
+        ip_address(args.ip)
+    except ValueError:
+        print(f"Invalid IP address: {args.ip}")
+        sys.exit(1)
+
+    res = requests.get(f"https://api.bgpview.io/ip/{args.ip}")
+    
+    if not res.ok:
+        print(
+            f"{res.status_code} - Failed to query {args.ip} from bgpview.io",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    res = res.json()
+    if res.get("status", "error") == "error":
+        err_msg = res.get("status_message", "<no message>")
+        print(
+            f"API error: {err_msg}",
+            file=sys.stderr,
+        )
+
+    # From here on, we can expect a data node
+    res = res["data"]
+
     if args.cmd == "asn":
-        print("0")
+        answer = "" if len(res["prefixes"]) == 0 else res["prefixes"][0]["asn"]["asn"]
     elif args.cmd == "cidr":
-        print("1")
+        answer = "" if len(res["prefixes"]) == 0 else res["prefixes"][0]["prefix"]
     elif args.cmd == "ip":
-        print(args.ip)
+        answer = res["ip"]
+    elif args.cmd ==  "ptr":
+        answer = "" if res["ptr_record"] is None else res["ptr_record"]
+    
+    print(answer, file=sys.stdout)
 
 
 
