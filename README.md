@@ -49,3 +49,25 @@ OS-like Linux distribution the OS is based on. Both features are
 accessible through the commands `os` and `like`.
 
 
+## wait4ip.py
+
+Python script that blocks until the client has a new public IP. Useful
+to test for VPN connections. The script blocks for at most 10 seconds,
+before it returns a failure.
+
+Sample usage:
+
+```
+wait_for_connection() {
+    ip=$(curl -s https://ipv4.icanhazip.com)
+    result=$(./wait4ip.py $ip)
+    return $result
+}
+
+if wait_for_connection ; then
+    echo "success"
+else
+    echo "failure"
+fi
+```
+
