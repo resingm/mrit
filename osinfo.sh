@@ -32,14 +32,27 @@ OPTIONS
 
 COMMAND_LIST="os like"
 
+
 # --- Utils ------------------------------------------------------------
+
+function is_darwin() {
+  if [[ "$(uname -s)" == "Darwin" ]] ; then
+    return 0
+  fi
+
+  return 1
+}
 
 function lowercase() {
   echo "$1" | sed "y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz"
 }
 
 function strip() {
-  echo "$1" | awk -F "=" '{print $2}' | awk -F "[-_]" '{print $1}'
+  if is_darwin; then
+    echo "$1"
+  else
+    echo "$1" | awk -F "=" '{print $2}' | awk -F "[-_]" '{print $1}'
+  fi
 }
 
 function verify_cmd() {
@@ -62,14 +75,22 @@ function verify_cmd() {
 #
 #
 function os() {
-  id=$(cat /etc/*release | grep "^ID=")
+  if is_darwin; then
+    id=$(sw_vers -productName)
+  else
+    id=$(cat /etc/*release | grep "^ID=")
+  fi
   strip "$id"
 }
 
 # --- like -------------------------------------------------------------
 # Reads all input from /etc/*release and returns the mapping of ID=*
 function like() {
-  id=$(cat /etc/*release | grep "^ID_LIKE=")
+  if is_darwin; then
+    id=$(sw_vers -productName)
+  else
+    id=$(cat /etc/*release | grep "^ID_LIKE=")
+  fi
 
   if [[ -z "$id" ]] ; then
     os;
