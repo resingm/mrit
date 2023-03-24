@@ -7,7 +7,7 @@
 # Small lookup tool that simply reads from STDIN, parses the input line
 # by line. Each line that looks like a domain name will be resolved by
 # using `dig`. The output will be in CSV format and printed to STDOUT.
-# 
+#
 # ======================================================================
 
 import subprocess
@@ -36,6 +36,9 @@ def query(
     args.append(domain_name)
     args.append(qtype)
     args.append("+short")
+
+    # TODO: Handle timeout error (would look something like)
+    #           ;; communications error to <nameserver>#53: timed out
 
     try:
         return subprocess.check_output(args).decode(ENCODING).strip()
