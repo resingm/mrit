@@ -18,11 +18,23 @@ BIN = "/usr/bin/dig"
 ENCODING = "utf-8"
 
 
-def query(
-    domain_name: str,
-    qtype: str,
-    nameserver: str = None,
-):
+def query_ptr(ip: str, nameserver: str = None):
+    ip = ip.lower()
+
+    args = [BIN]
+    if nameserver:
+        args.append(f"@{nameserver}")
+
+    args.append("+short")
+    args.append("-x")
+    args.append(ip)
+
+    try:
+        return subprocess.check_output(args).decode(ENCODING).strip()
+    except subprocess.CalledProcessError:
+        return None
+
+def query(domain_name: str, qtype: str, nameserver: str = None):
     domain_name = domain_name.lower()
     qtype = qtype.upper()
 
@@ -37,38 +49,49 @@ def query(
     args.append(qtype)
     args.append("+short")
 
-    # TODO: Handle timeout error (would look something like)
-    #           ;; communications error to <nameserver>#53: timed out
-
     try:
         return subprocess.check_output(args).decode(ENCODING).strip()
     except subprocess.CalledProcessError:
         return None
 
 
-def resolve_domain_name(
-    domain_name,
+def resolve(
+    q,
     nameserver: str = None,
+    reverse_lookup: bool = False,
 ):
     results = []
 
-    while cname := query(domain_name, "CNAME", nameserver=nameserver):
-        results.append(([domain_name, "CNAME", cname]))
-        domain_name = cname
-
-    if ipv4 := query(domain_name, "A", nameserver=nameserver):
-        ipv4 = ipv4.splitlines()
-        for ip in ipv4:
-            results.append((domain_name, "A", ip))
+    if reverse_lookup:
+        if q_res := query_ptr(q, nameserver=nameserver):
+            for line in q_res.splitlines():
+                if len(line) <= 0:
+                    continue
+                results.append((q, "PTR", line))
+        else:
+            results.append((q, "PTR", "null"))
     else:
-        results.append((domain_name, "A", "null"))
+        while cname := query(q, "CNAME", nameserver=nameserver):
+            results.append(([q, "CNAME", cname]))
+            q = cname
 
-    if ipv6 := query(domain_name, "AAAA", nameserver=nameserver):
-        ipv6 = ipv6.splitlines()
-        for ip in ipv6:
-            results.append((domain_name, "AAAA", ip))
-    else:
-        results.append((domain_name, "AAAA", "null"))
+        if q_res:= query(q, "A", nameserver=nameserver):
+            for line in q_res.splitlines():
+                if len(line) <= 0:
+                    continue
+
+                results.append((q, "A", line))
+        else:
+            results.append((q, "A", "null"))
+
+        if q_res := query(q, "AAAA", nameserver=nameserver):
+            for line in q_res.splitlines():
+                if len(line) <= 0:
+                    continue
+
+                results.append((q, "AAAA", line))
+        else:
+            results.append((q, "AAAA", "null"))
 
     return results
 
@@ -79,6 +102,7 @@ def main():
 
     # Parse arguments...
     nameserver = None
+    reverse_lookup = False
 
     for arg in sys.argv:
         arg = arg.strip()
@@ -86,6 +110,8 @@ def main():
         # Check on dig @nameserver argument
         if arg[0] == "@":
             nameserver = arg[1:]
+        elif arg == "-x":
+            reverse_lookup = True
 
 
     # Loop over STDIN and resolve domain names
@@ -99,7 +125,7 @@ def main():
                 continue
 
             # Lookup all CNAMES, IPv4 and IPv6
-            results = resolve_domain_name(line, nameserver=nameserver)
+            results = resolve(line, nameserver=nameserver, reverse_lookup=reverse_lookup)
 
             for r in results:
                 sys.stdout.write(",".join(r))
