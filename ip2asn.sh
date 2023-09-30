@@ -18,7 +18,3 @@ echo "end" >> $bulk
 
 netcat $host 43 < $bulk
 
-
-
-
-
