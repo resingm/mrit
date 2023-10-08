@@ -2,7 +2,7 @@
 
 # ======================================================================
 #
-#   massdig.py
+#   bulkdig.py
 #
 # Small lookup tool that simply reads from STDIN, parses the input line
 # by line. Each line that looks like a domain name will be resolved by
@@ -67,7 +67,7 @@ def resolve(
             for line in q_res.splitlines():
                 if len(line) <= 0:
                     continue
-                results.append((q, "PTR", line))
+                results.append((nameserver, q, "PTR", line))
         else:
             results.append((q, "PTR", "null"))
     else:
