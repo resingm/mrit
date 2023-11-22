@@ -25,11 +25,21 @@ def main():
     params = [(e[0], unquote_plus(e[1])) for e in params]
 
     # Build struct around the endpoint
-    struct = { "endpoint": endpoint }
+    struct = { "_meta": { "endpoint": endpoint } } }
     struct.update(dict(params))
 
-    print(json.dumps(struct))
+    # Further disassembling the data
+    disassembled = {}
 
+    if "data" in struct:
+        disassembled["data"] = struct["data"].split("|")
+
+    if disassembled:
+        struct["_disassembled"]  = disassembled
+
+
+
+    print(json.dumps(struct))
 
 if __name__ == "__main__":
     main()
