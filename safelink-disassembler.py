@@ -25,7 +25,7 @@ def main():
     params = [(e[0], unquote_plus(e[1])) for e in params]
 
     # Build struct around the endpoint
-    struct = { "_meta": { "endpoint": endpoint } } }
+    struct = { "_meta": { "endpoint": endpoint } }
     struct.update(dict(params))
 
     # Further disassembling the data
