@@ -7,7 +7,18 @@ import sys
 from urllib.parse import unquote_plus
 
 
-link="https://eur02.safelinks.protection.outlook.com/?url=http%3A%2F%2Fwww.integrand.nl%2F&data=05%7C01%7Cs.s.spuls%40utwente.nl%7C6aa76a69803f4f56299b08dbbf69d46b%7C723246a1c3f543c5acdc43adb404ac4d%7C0%7C0%7C638314233487847100%7CUnknown%7CTWFpbGZsb3d8eyJWIjoiMC4wLjAwMDAiLCJQIjoiV2luMzIiLCJBTiI6Ik1haWwiLCJXVCI6Mn0%3D%7C3000%7C%7C%7C&sdata=f8OUXgkqULnWjhGbCmk%2FVtHiis9q%2FsbCxKeORTEaWdo%3D&reserved=0"
+def disassemble_endpoint(base_url):
+    proto, r = base_url.split("://", maxsplit=1)
+    region, _ = r.split(".", maxsplit=1)
+    fqdn, _ = r.split("/", maxsplit=1)
+
+    return {
+        "protocol": proto,
+        "region": region,
+        "fqdn": fqdn,
+        "uri": base_url,
+    }
+
 
 
 def main():
@@ -25,7 +36,7 @@ def main():
     params = [(e[0], unquote_plus(e[1])) for e in params]
 
     # Build struct around the endpoint
-    struct = { "_meta": { "endpoint": endpoint } }
+    struct = { "_meta": disassemble_endpoint(endpoint) }
     struct.update(dict(params))
 
     # Further disassembling the data
