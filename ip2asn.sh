@@ -16,5 +16,13 @@ echo "verbose" >> $bulk
 cat "${1:-/dev/stdin}" | sort | uniq >> $bulk
 echo "end" >> $bulk
 
-netcat $host 43 < $bulk
+tmp_lookup=$(mktemp)
+
+netcat $host 43 < $bulk >> ${tmp_lookup}
+
+# Print CSV header
+echo "asn,ip,prefix,cc,rir,allocated,asname"
+
+# Convert IP-to-ASN output to CSV
+cat ${tmp_lookup} | grep "^[0-9]" | sed -E 's/\| ([^|]+)$/| "\1"/' | sed 's/ *| */,/g'
 

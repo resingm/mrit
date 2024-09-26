@@ -14,9 +14,9 @@ link_file() {
   linkname="${target_dir}/${filename}"
 
   if [[ $1 == *.py ]] ; then
-    ln -s "$f" "$linkname"
+    [[ -h "$linkname" ]] || ln -s "$f" "$linkname"
   elif [[ $1 == *.sh ]] ; then
-    ln -s "$f" "$linkname"
+    [[ -h "$linkname" ]] || ln -s "$f" "$linkname"
   else
     # echo "Skip creating link for ${filename} - $1"
     :
